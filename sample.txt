@@ -1,0 +1,70 @@
+Home	Welcome
+PNR: KFBSPZ
+Payment Center Log
+LogID	Date	Agent	Amount	MOP	User FOP	Remarks	Cash Drawer ID
+24055723
+30-Jun-2026
+11:17 PM	Jawaid Abdul Majeed	1,522,610PKR	Travel Agent	Cash	Installment payment records at 30-Jun-2026 11:17PM	-
+24211752
+4-Aug-2026
+2:52 PM	Jawaid Abdul Majeed	4,720,830PKR	Travel Agent	Cash	-	-
+Travel Agency Log
+64811198
+24211752	4-Aug-2026
+2:52 PM	Jawaid Abdul Majeed , ALLAHHOO Travels and Tours DB-KHI, Main Branch, Karachi	Ticket Sale / 172.64.217.99	2,614,190	2,025,000
+Tickets and Coupons with Status History
+Passenger Name MRS GUL NAZ
+Ticket Time 30-Jun-2026 11:17 PM
+ 	SSR	Item Code	Item Title	Remarks	Charge Code	Inv Code	 	 	 	Inv (Qty)
+ 	SEAT	SEAT	Seat Extra Cost	Seat: 22F	SEAT			2,500PKR	Confirmed	
+ 	SEAT	SEAT	Seat Extra Cost	SEAT: 24A changed to 27A	SEAT			2,000PKR	Confirmed	
+Reservation History
+Time	Agency
+Log ID	User
+Type	User Name	Action	Details	Remarks
+2-Sep-2026
+6:35 AM	64811198	PA	Jed Cute03	Change Pax Data	Change Seat for Coupon 86901573: to 29C	Seat Assignment
+14-Aug-2026
+12:29 AM	64811198	PA	Mariam Usmani	Change Pax Data	Change Seat for Coupon 86901540: 21C to 36F	Seat Assignment
+10-Aug-2026
+2:15 PM	64811198	Agent	Airblue Website	Change Pax Data	Seat reassignment for coupon 86901605: 25C to 28D	Seat Reassignment
+10-Aug-2026
+2:15 PM	64811198	Agent	Airblue Website	Assign Seat	Coupon: 86901605 seat:28D is assigned.	Assign Seat
+3-Aug-2026
+3:50 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Change seat from 23C to 23F on coupon 86901606	Change seat
+3-Aug-2026
+3:50 PM	64811198	Agent	Jawaid Abdul Majeed	Change Coupon SSRs	SEAT added to coupon ID# 86901598	SSR Added
+3-Aug-2026
+3:50 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 17D to coupon 86901598	Assign Seat
+3-Aug-2026
+3:50 PM	64811198	Agent	Jawaid Abdul Majeed	Change Coupon SSRs	SEAT added to coupon ID# 86901592	SSR Added
+3-Aug-2026
+3:50 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 18A to coupon 86901592	Assign Seat
+3-Aug-2026
+3:48 PM	64811198	Agent	Jawaid Abdul Majeed	Change Coupon SSRs	SEAT removed from coupon ID# 86901598	SSR Removed
+3-Aug-2026
+3:48 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 19C to coupon 86901576	Assign Seat
+3-Aug-2026
+3:48 PM	64811198	Agent	Jawaid Abdul Majeed	Change Coupon SSRs	SEAT added to coupon ID# 86901524	SSR Added
+3-Aug-2026
+3:48 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 22E to coupon 86901524	Assign Seat
+3-Aug-2026
+3:48 PM	64811198	Agent	Jawaid Abdul Majeed	Change Coupon SSRs	SEAT added to coupon ID# 86901522	SSR Added
+3-Aug-2026
+3:48 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 22F to coupon 86901522	Assign Seat
+30-Jun-2026
+11:20 PM	64811198	Agent	Jawaid Abdul Majeed	Change Coupon SSRs	SEAT added to coupon ID# 86901606	SSR Added
+30-Jun-2026
+11:20 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 23C to coupon 86901606	Assign Seat
+30-Jun-2026
+11:20 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 24A to coupon 86901598	Assign Seat
+30-Jun-2026
+11:20 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 24D to coupon 86901592	Assign Seat
+30-Jun-2026
+11:20 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 25F to coupon 86901576	Assign Seat
+30-Jun-2026
+11:20 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 30E to coupon 86901524	Assign Seat
+30-Jun-2026
+11:20 PM	64811198	Agent	Jawaid Abdul Majeed	Assign Seat	Assign seat 30F to coupon 86901522	Assign Seat
+30-Jun-2026
+11:17 PM	64811198	Agent	Jawaid Abdul Majeed	Change Expiration Time	New Time: 04-Aug-2026 23:59	Group booking installment payment paid
