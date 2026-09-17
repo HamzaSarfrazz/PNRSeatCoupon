@@ -2,8 +2,12 @@
 PNR Seat Assignment & Change Report
 -----------------------------------
 Reads a PNR Admin page, finds the reservation date and the payment date on the page
-itself, keeps the Reservation History between those two moments, and shows each
-coupon's initial seat and the seat it was changed to.
+itself, keeps the Reservation History between those two moments, shows each coupon's
+initial seat vs. the seat it was changed to, and flags any coupon where the SAME
+staff member or travel agent removed a seat and then reassigned a different one
+shortly after - worth a second look, since it's a pattern that could be used to move
+a passenger to a cheaper seat before an aircraft change so a costlier seat can be
+requested back as compensation later.
 
 Run:  streamlit run app.py
 """
@@ -51,9 +55,10 @@ st.title("✈️ PNR Seat Assignment & Change Report")
 if not raw_text.strip():
     st.info(
         "Upload or paste the PNR page in the sidebar.\n\n"
-        "The app reads the **reservation date** (Ticket Time / installment payment row) "
-        "and the **payment date** (the Ticket Sale row) off the page, then lists every "
-        "seat assignment and seat change between them."
+        "The app reads the **reservation date** and the **payment date** off the page, "
+        "lists every seat assignment and change between them, and flags any coupon "
+        "where the same staff member or travel agent removed a seat and reassigned "
+        "it themselves shortly after."
     )
     st.stop()
 
@@ -126,12 +131,19 @@ if only_changed and not summary.empty:
 event_log = sp.build_event_log(events)
 table = summary if view.startswith("Summary") else event_log
 
+# --------------------------------------------------------------------------- #
+# Self-reassignment flags (all found on the page, then narrowed to the range)
+# --------------------------------------------------------------------------- #
+all_flags = sp.find_self_reassignments(raw_text, whole_document=whole_doc)
+flags_in_range = [f for f in all_flags if start_dt <= f["Reassigned At"] <= end_dt]
+flags_table = sp.build_flags_table(flags_in_range)
+
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Seat entries in range", len(events))
 m2.metric("Coupons", summary["Coupon Number"].nunique() if not summary.empty else 0)
 m3.metric("Seats changed",
           int((summary["Status"] == "Changed").sum()) if not summary.empty else 0)
-m4.metric("Entries outside range", len(all_events) - len(events))
+m4.metric("Self-reassignments flagged", len(flags_table))
 
 st.caption(
     (f"PNR {pnr} — " if pnr else "")
@@ -148,35 +160,45 @@ st.dataframe(table, use_container_width=True, hide_index=True)
 # --------------------------------------------------------------------------- #
 # Excel export
 # --------------------------------------------------------------------------- #
-def to_excel(df: pd.DataFrame, title: str, subtitle: str) -> bytes:
+def _style_sheet(ws, ncols: int, nrows: int, header_row: int) -> None:
+    thin = Side(style="thin", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    head_fill = PatternFill("solid", fgColor="D9D9D9")
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col in range(1, ncols + 1):
+        c = ws.cell(row=header_row, column=col)
+        c.font, c.fill, c.border, c.alignment = Font(bold=True), head_fill, border, center
+    for row in range(header_row + 1, header_row + 1 + nrows):
+        for col in range(1, ncols + 1):
+            c = ws.cell(row=row, column=col)
+            c.border, c.alignment = border, center
+    ws.freeze_panes = ws.cell(row=header_row + 1, column=1)
+
+
+def to_excel(df: pd.DataFrame, title: str, subtitle: str,
+             flags_df: pd.DataFrame | None = None) -> bytes:
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Seat Report", startrow=2)
         ws = writer.sheets["Seat Report"]
-
         ws.cell(row=1, column=1, value=title).font = Font(bold=True, size=13)
         ws.cell(row=2, column=1, value=subtitle).font = Font(italic=True, size=9)
-
-        thin = Side(style="thin", color="000000")
-        border = Border(left=thin, right=thin, top=thin, bottom=thin)
-        head_fill = PatternFill("solid", fgColor="D9D9D9")
-        center = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        header_row = 3
-
-        for col in range(1, len(df.columns) + 1):
-            c = ws.cell(row=header_row, column=col)
-            c.font, c.fill, c.border, c.alignment = Font(bold=True), head_fill, border, center
-
-        for row in range(header_row + 1, header_row + 1 + len(df)):
-            for col in range(1, len(df.columns) + 1):
-                c = ws.cell(row=row, column=col)
-                c.border, c.alignment = border, center
-
+        _style_sheet(ws, len(df.columns), len(df), header_row=3)
         for col, name in enumerate(df.columns, start=1):
             longest = max([len(str(name))] + [len(str(v)) for v in df[name].tolist()])
             ws.column_dimensions[get_column_letter(col)].width = min(max(longest + 4, 12), 60)
 
-        ws.freeze_panes = ws.cell(row=header_row + 1, column=1)
+        if flags_df is not None and not flags_df.empty:
+            flags_df.to_excel(writer, index=False, sheet_name="Flagged Reassignments", startrow=2)
+            fws = writer.sheets["Flagged Reassignments"]
+            fws.cell(row=1, column=1, value="Same-actor seat removal + reassignment").font = Font(bold=True, size=13)
+            fws.cell(row=2, column=1,
+                     value="Same staff member/travel agent removed then reassigned the seat").font = Font(italic=True, size=9)
+            _style_sheet(fws, len(flags_df.columns), len(flags_df), header_row=3)
+            for col, name in enumerate(flags_df.columns, start=1):
+                longest = max([len(str(name))] + [len(str(v)) for v in flags_df[name].tolist()])
+                fws.column_dimensions[get_column_letter(col)].width = min(max(longest + 4, 12), 60)
     return buf.getvalue()
 
 
@@ -192,7 +214,7 @@ base = f"seat_report_{pnr or 'PNR'}_{stamp}"
 b1, b2 = st.columns([1, 4])
 b1.download_button(
     "⬇️ Download Excel",
-    data=to_excel(table, sheet_title, subtitle),
+    data=to_excel(table, sheet_title, subtitle, flags_table),
     file_name=f"{base}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     type="primary",
@@ -205,6 +227,23 @@ b2.download_button(
 )
 
 # --------------------------------------------------------------------------- #
+# Self-reassignment flags (shown at the bottom, below the main table/downloads)
+# --------------------------------------------------------------------------- #
+if not flags_table.empty:
+    st.divider()
+    with st.container(border=True):
+        st.markdown("### ⚠️ Same-actor seat removal + reassignment")
+        st.write(
+            "For these coupons, the same staff member or travel agent removed the "
+            "seat charge and then assigned a different seat to the same coupon "
+            "shortly after. This is not proof of anything on its own, but it is a "
+            "pattern worth a second look — for example, moving a passenger to a "
+            "cheaper seat ahead of an aircraft change and then claiming "
+            "compensation for the original seat later."
+        )
+        st.dataframe(flags_table, use_container_width=True, hide_index=True)
+
+# --------------------------------------------------------------------------- #
 # Diagnostics
 # --------------------------------------------------------------------------- #
 with st.expander("Diagnostics — what was read, what was skipped"):
@@ -214,6 +253,8 @@ with st.expander("Diagnostics — what was read, what was skipped"):
             f"Earliest: {all_events[0].when:%d-%b-%Y %I:%M %p} · "
             f"Latest: {all_events[-1].when:%d-%b-%Y %I:%M %p}"
         )
+    st.write(f"Self-reassignment flags found on the whole page: **{len(all_flags)}** "
+             f"({len(flags_table)} inside the selected range)")
     missed = sp.unmatched_lines(raw_text, whole_document=whole_doc)
     if missed:
         st.write("Lines mentioning a coupon and a seat that produced no entry:")
@@ -228,11 +269,18 @@ with st.expander("How the report is built"):
   precedes it, so tabs, columns and line breaks don't matter.
 - **Reservation date** comes from `Ticket Time`, falling back to the installment
   payment row. **Payment date** comes from the `Ticket Sale` row.
-- Only entries between those two moments are used.
+- Only entries between those two moments are used for the seat table.
 - Per coupon: the earliest entry gives *Initial Seat* and *Initial Assignment Date*;
   the last entry that moves the seat gives *New Seat* and *Seat Change Date*.
-- `SSR added/removed` rows are ignored — they don't move a seat.
-- The website writes each reassignment twice at the same second; the duplicate is
-  dropped so a change is counted once.
+- **Who did it**: a `PA` user type is an airline **Employee**; an `Agent` user type
+  is a **Travel Agent**, unless the name is the airline's own website/app (e.g.
+  "Airblue Website"), in which case it's labelled **System / Self-Service** since
+  that isn't a person acting on the booking.
+- **Flag**: if the same Employee or Travel Agent removed a coupon's seat
+  (`SEAT removed from coupon ID# ...`) and then assigned it a different seat
+  afterwards, that coupon is listed in the flagged panel above. Website/self-service
+  reassignments are never flagged this way.
+- The website writes each of its own reassignments twice at the same second; the
+  duplicate is dropped so a change is counted once.
         """
     )
