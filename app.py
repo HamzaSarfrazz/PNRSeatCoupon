@@ -25,7 +25,27 @@ from openpyxl.utils import get_column_letter
 
 import seat_parser as sp
 
+REQUIRED_VERSION = "2026-09-17.2-flags"
+
 st.set_page_config(page_title="PNR Seat Change Report", page_icon="✈️", layout="wide")
+
+live_version = getattr(sp, "__version__", "unknown (older file)")
+has_flag_feature = hasattr(sp, "find_self_reassignments")
+
+if not has_flag_feature:
+    st.error(
+        "**seat_parser.py on this server is out of date** — it doesn't have the "
+        "self-reassignment flag feature yet, so that part of the app is disabled "
+        "below.\n\n"
+        f"- Expected version: `{REQUIRED_VERSION}`\n"
+        f"- Loaded from: `{sp.__file__}`\n"
+        f"- Loaded version: `{live_version}`\n\n"
+        "This means the deployed `seat_parser.py` file itself wasn't updated — "
+        "replace it in your repo (not just `app.py`) and redeploy. If you're on "
+        "Streamlit Cloud with GitHub, confirm the new `seat_parser.py` was actually "
+        "committed and pushed, then use **Manage app → Reboot app** to clear any "
+        "cached build."
+    )
 
 # --------------------------------------------------------------------------- #
 # Input
@@ -134,16 +154,21 @@ table = summary if view.startswith("Summary") else event_log
 # --------------------------------------------------------------------------- #
 # Self-reassignment flags (all found on the page, then narrowed to the range)
 # --------------------------------------------------------------------------- #
-all_flags = sp.find_self_reassignments(raw_text, whole_document=whole_doc)
-flags_in_range = [f for f in all_flags if start_dt <= f["Reassigned At"] <= end_dt]
-flags_table = sp.build_flags_table(flags_in_range)
+if has_flag_feature:
+    all_flags = sp.find_self_reassignments(raw_text, whole_document=whole_doc)
+    flags_in_range = [f for f in all_flags if start_dt <= f["Reassigned At"] <= end_dt]
+    flags_table = sp.build_flags_table(flags_in_range)
+else:
+    all_flags = []
+    flags_table = pd.DataFrame()
+
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Seat entries in range", len(events))
 m2.metric("Coupons", summary["Coupon Number"].nunique() if not summary.empty else 0)
 m3.metric("Seats changed",
           int((summary["Status"] == "Changed").sum()) if not summary.empty else 0)
-m4.metric("Self-reassignments flagged", len(flags_table))
+m4.metric("Self-reassignments flagged", len(flags_table) if has_flag_feature else "n/a")
 
 st.caption(
     (f"PNR {pnr} — " if pnr else "")
@@ -253,8 +278,9 @@ with st.expander("Diagnostics — what was read, what was skipped"):
             f"Earliest: {all_events[0].when:%d-%b-%Y %I:%M %p} · "
             f"Latest: {all_events[-1].when:%d-%b-%Y %I:%M %p}"
         )
-    st.write(f"Self-reassignment flags found on the whole page: **{len(all_flags)}** "
-             f"({len(flags_table)} inside the selected range)")
+    st.write(f"Self-reassignment flags found on the whole page: "
+             f"**{len(all_flags) if has_flag_feature else 'n/a (feature disabled)'}**"
+             + (f" ({len(flags_table)} inside the selected range)" if has_flag_feature else ""))
     missed = sp.unmatched_lines(raw_text, whole_document=whole_doc)
     if missed:
         st.write("Lines mentioning a coupon and a seat that produced no entry:")
