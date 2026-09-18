@@ -28,7 +28,7 @@ from datetime import datetime
 
 import pandas as pd
 
-__version__ = "2026-09-17.2-flags"
+__version__ = "2026-09-17.3-agent-only"
 
 # --------------------------------------------------------------------------- #
 # Date / time handling
@@ -264,7 +264,7 @@ def _dedupe(events: list[SeatEvent]) -> list[SeatEvent]:
 # --------------------------------------------------------------------------- #
 # Self removal + reassignment ("suspicious") detection
 # --------------------------------------------------------------------------- #
-FLAGGABLE_ROLES = {"Employee", "Travel Agent"}
+FLAGGABLE_ROLES = {"Travel Agent"}
 
 
 def find_self_reassignments(text: str, whole_document: bool = False) -> list[dict]:
